@@ -3,7 +3,8 @@ import Image from 'next/image';
 
 export default function Home() {
   return (
-    <main className="relative w-full h-screen bg-black flex flex-col items-center justify-end overflow-hidden pb-24">
+    // J'ai changé pb-24 en pb-48 ici pour remonter tout le bloc
+    <main className="relative w-full h-screen bg-black flex flex-col items-center justify-end overflow-hidden pb-48">
       {/* Image de fond de la couverture */}
       <div className="absolute inset-0 z-0">
         <Image 
