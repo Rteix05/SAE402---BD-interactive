@@ -5,9 +5,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Typewriter from '@/components/Typewriter'; 
 
 const pageData = [
-  { id: 1, text: "Les 7 TC... Je les retrouverai !", layout: "col-span-2 h-64" }, 
-  { id: 2, text: "Quoi qu'il en coûte.", layout: "col-span-1 h-80" }, 
-  { id: 3, text: "Même s'il faut utiliser le chakra du canard.", layout: "col-span-1 h-80" },
+  { 
+    id: 1, 
+    textJp: "７つのTC…必ず見つけ出す！", 
+    textFr: "Les 7 TC... Je les retrouverai !", 
+    layout: "col-span-2 h-64" 
+  },
+  { 
+    id: 2, 
+    textJp: "どんな犠牲を払ってでも。", 
+    textFr: "Quoi qu'il en coûte.", 
+    layout: "col-span-1 h-80" 
+  },
+  { 
+    id: 3, 
+    textJp: "アヒルのチャクラを使ってでもな。", 
+    textFr: "Même s'il faut utiliser le chakra du canard.", 
+    layout: "col-span-1 h-80" 
+  },
 ];
 
 export default function ComicPage() {
@@ -44,8 +59,8 @@ export default function ComicPage() {
                   transition={{ delay: 0.3, type: "spring" }}
                   className="absolute bottom-4 left-4 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[80%] min-h-[3.5rem] shadow-md"
                 >
-                  {/* On passe le texte. Vitesse de 40ms/lettre, transformation après 500ms */}
-                  <Typewriter text={panel.text} speed={40} decodeDelay={500} />
+                  {/* decodeDelay à 800ms pour laisser un peu de temps d'avance au Japonais */}
+                  <Typewriter textJp={panel.textJp} textFr={panel.textFr} speed={40} decodeDelay={800} />
                 </motion.div>
               </motion.div>
             )
