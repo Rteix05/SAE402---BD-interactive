@@ -3,27 +3,27 @@ import Image from 'next/image';
 
 export default function Home() {
   return (
-    <main className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden">
+    <main className="relative w-full h-screen bg-black flex flex-col items-center justify-end overflow-hidden pb-24">
       {/* Image de fond de la couverture */}
-      <div className="absolute inset-0 z-0 opacity-80">
-        {/* Remplace par le bon chemin vers ton image */}
-        {/* <Image src="/images/cover.jpg" alt="Rafamaru Cover" fill className="object-cover" /> */}
-        <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white/20">
-          [Image Couverture Rafamaru]
-        </div>
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src="/cover.jpg" 
+          alt="Rafamaru et les 7 TC" 
+          fill 
+          priority
+          className="object-cover object-top" 
+        />
+        {/* Un petit voile noir dégradé en bas pour que le bouton soit bien lisible */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
       </div>
 
-      {/* Contenu par-dessus */}
-      <div className="relative z-10 flex flex-col items-center space-y-8">
-        <h1 className="text-6xl font-bold text-white tracking-widest drop-shadow-lg">
-          RAFAMARU
-        </h1>
-        
+      {/* Bouton par-dessus */}
+      <div className="relative z-10 flex flex-col items-center">
         <Link 
           href="/lire/1" 
-          className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold text-xl rounded-full transition-transform hover:scale-105"
+          className="px-8 py-4 bg-orange-500 hover:bg-orange-600 border-4 border-white text-white font-black text-2xl rounded-full transition-transform hover:scale-110 shadow-[0_0_15px_rgba(255,165,0,0.7)]"
         >
-          Commencer l'histoire
+          COMMENCER L'HISTOIRE
         </Link>
       </div>
     </main>
