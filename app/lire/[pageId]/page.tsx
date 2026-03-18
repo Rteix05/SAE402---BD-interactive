@@ -1,22 +1,26 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link'; // Import du composant Link de Next.js
+import Link from 'next/link';
 import Typewriter from '@/components/Typewriter'; 
 
-// Données par page : chaque page a ses propres cases, images et fond
 const allPagesData: Record<number, {
-  // Mode "overlay" : image de fond + masque PNG par-dessus (pour les pages avec découpage)
-  overlay?: { backgroundImage: string; maskImage: string };
+  overlayMask?: string;
+  bgm?: string; // Musique de fond de la page
   panels: {
     id: number;
-    textJp: string;
-    textFr: string;
+    textJp?: string;
+    textFr?: string;
     layout: string;
-    // Position de la bulle de texte en mode overlay (en %)
-    bubblePosition?: { bottom: string; left: string };
+    image?: string;
+    onomatopoeia?: string;
+    onoStyle?: string;
+    bubbleStyle?: string;
+    sfx?: string; // Effet sonore au clic
+    voice?: string; // Voix qui baisse la BGM pendant sa lecture
+    sfxChain?: string[]; // Chaîne de sons à jouer l'un après l'autre (avec ducking BGM)
   }[];
 }> = {
   1: {
@@ -27,18 +31,38 @@ const allPagesData: Record<number, {
     ],
   },
   2: {
-    overlay: { backgroundImage: "/cover.jpg", maskImage: "/1_ligne.png" },
+    overlayMask: "/2_ligne.png",
+    bgm: "/audio/akatsuki.mp3",
     panels: [
-      { id: 1, textJp: "左の世界…", textFr: "Le monde à gauche…", layout: "", bubblePosition: { bottom: "8%", left: "5%" } },
-      { id: 2, textJp: "右の世界…", textFr: "Le monde à droite…", layout: "", bubblePosition: { bottom: "8%", left: "55%" } },
+      { id: 1, layout: "absolute inset-0 w-full h-full", image: "/2_1.png", onomatopoeia: "/ono.png", onoStyle: "right-[2%] top-[2%] w-[20%]", sfx: "/audio/yooo.mp3" },
+      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/2_2.png", textJp: "ラファマル、貴重なものをください！", textFr: " Donne-nous le précieux, Rafamaru !", bubbleStyle: "bottom-[3%] right-[2%] left-auto", voice: "/audio/pain-jiraiya-sensei.mp3" },
+      // L'ordre des sons est corrigé ici : d'abord la voix, ensuite le bruitage
+      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/2_3.png", textJp: "7対1？それだけ？S3を取ったばかりだ、お前らなんか怖くない！", textFr: " C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SHARINGAN !!!", bubbleStyle: "bottom-[3%] left-[2%]", sfxChain: ["/audio/itachi-voice.mp3", "/audio/sharingan2.mp3"] },
     ],
   },
 };
 
 const TOTAL_PAGES = 6;
 
+// Utilitaire pour transition douce du volume
+function smoothVolume(audio: HTMLAudioElement, target: number, duration: number = 500) {
+  const start = audio.volume;
+  const diff = target - start;
+  if (diff === 0) return;
+  const steps = 30;
+  let currentStep = 0;
+  const stepTime = duration / steps;
+  const interval = setInterval(() => {
+    currentStep++;
+    audio.volume = Math.max(0, Math.min(1, start + (diff * (currentStep / steps))));
+    if (currentStep >= steps) {
+      audio.volume = target;
+      clearInterval(interval);
+    }
+  }, stepTime);
+}
+
 export default function ComicPage() {
-  // On récupère le numéro de la page actuelle depuis l'URL et on le transforme en nombre
   const params = useParams();
   const currentPage = parseInt(params.pageId as string, 10) || 1;
 
@@ -47,70 +71,176 @@ export default function ComicPage() {
 
   const [visiblePanels, setVisiblePanels] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(false);
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+
+  // Lancer la musique de fond au premier clic sur la page
+  const startBgm = () => {
+    if (!currentPageData.bgm || bgmRef.current) return;
+    const bgm = new Audio(currentPageData.bgm);
+    bgm.loop = true;
+    bgm.volume = 0.75;
+    bgm.play().catch(e => console.log("BGM Error:", e));
+    bgmRef.current = bgm;
+  };
+
+  // Couper la musique quand on quitte la page
+  useEffect(() => {
+    return () => {
+      if (bgmRef.current) {
+        bgmRef.current.pause();
+        bgmRef.current = null;
+      }
+    };
+  }, [currentPage]);
 
   const handleNextPanel = () => {
     if (isLocked) return;
 
     if (visiblePanels < pageData.length) {
+      // Lancer la BGM au premier clic
+      startBgm();
+
+      const nextPanel = pageData[visiblePanels];
+
+      // 1. SFX Simple
+      if (nextPanel.sfx) {
+        const sfx = new Audio(nextPanel.sfx);
+        sfx.volume = 1.0;
+        sfx.play().catch(e => console.log("SFX Error:", e));
+      }
+
+      // 2. Voix simple : baisser la BGM puis la remonter quand la voix est finie
+      if (nextPanel.voice && bgmRef.current) {
+        const bgm = bgmRef.current;
+        smoothVolume(bgm, 0.3, 500);
+        const voice = new Audio(nextPanel.voice);
+        voice.volume = 1.0;
+        voice.play().catch(e => console.log("Voice Error:", e));
+        voice.onended = () => {
+          smoothVolume(bgm, 0.75, 500);
+        };
+      }
+
+      // 3. Chaîne de sons : jouer l'un après l'autre proprement
+      if (nextPanel.sfxChain && nextPanel.sfxChain.length > 0) {
+        if (bgmRef.current) smoothVolume(bgmRef.current, 0.3, 500);
+
+        const playNextSound = (index: number) => {
+          if (index >= nextPanel.sfxChain!.length) {
+            if (bgmRef.current) smoothVolume(bgmRef.current, 0.75, 500);
+            return;
+          }
+
+          const audio = new Audio(nextPanel.sfxChain![index]);
+          audio.volume = 1.0;
+          audio.play().catch(e => console.log("SFX Chain Error:", e));
+
+          audio.onended = () => {
+            // Le fameux délai de 0.8s pour la case 3 après la voix d'Itachi
+            if (nextPanel.id === 3 && index === 0) {
+              setTimeout(() => {
+                playNextSound(index + 1);
+              }, 800);
+            } else {
+              playNextSound(index + 1);
+            }
+          };
+        };
+
+        playNextSound(0); // Lancer la boucle
+      }
+
       setIsLocked(true);
       setVisiblePanels(prev => prev + 1);
 
       setTimeout(() => {
         setIsLocked(false);
-      }, 2500);
+      }, 1500);
     }
   };
 
-  // Mode overlay (page avec image de fond + masque)
-  const isOverlay = !!currentPageData.overlay;
+  const hasMask = !!currentPageData.overlayMask;
 
   return (
-    <div 
-      className="min-h-screen bg-neutral-900 p-4 md:p-8 flex flex-col items-center justify-between"
-    >
-      {/* Zone principale de la BD cliquable */}
+    <div className="min-h-screen bg-neutral-900 p-4 md:p-8 flex flex-col items-center justify-between">
+      
+      {/* Zone cliquable principale */}
       <div 
-        className="w-full max-w-5xl flex-grow flex flex-col items-center justify-center mb-8 cursor-pointer"
+        className={`w-full max-w-5xl flex-grow flex flex-col items-center justify-center mb-8 ${isLocked ? 'cursor-wait' : 'cursor-pointer'}`}
         onClick={handleNextPanel}
       >
-        {isOverlay ? (
-          /* === MODE OVERLAY : cover.jpg en fond, 1_ligne.png par-dessus === */
-          <div className="relative w-full shadow-2xl" style={{ aspectRatio: '16/9' }}>
-            {/* Couche 1 : image de fond (cover.jpg) */}
+        {hasMask ? (
+          /* ==========================================
+             MODE MASQUE : ABSOLU (Sans grille)
+             ========================================== */
+          <div className="relative w-full aspect-video bg-black shadow-2xl overflow-hidden">
+            
+            {/* 1. Le masque par-dessus tout (z-20) */}
             <img
-              src={currentPageData.overlay!.backgroundImage}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
+              src={currentPageData.overlayMask}
+              alt="Lignes du panel"
+              className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none"
             />
-            {/* Couche 2 : masque/cadre (1_ligne.png) par-dessus */}
-            <img
-              src={currentPageData.overlay!.maskImage}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover z-10"
-            />
-            {/* Couche 3 : bulles de texte */}
-            <AnimatePresence>
-              {pageData.map((panel, index) => (
-                index < visiblePanels && (
-                  <motion.div
-                    key={panel.id}
-                    initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: 0.3, type: "spring" }}
-                    className="absolute z-20 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[40%] min-h-[3.5rem] shadow-md"
-                    style={{
-                      bottom: panel.bubblePosition?.bottom ?? '8%',
-                      left: panel.bubblePosition?.left ?? '5%',
-                    }}
-                  >
-                    <Typewriter textJp={panel.textJp} textFr={panel.textFr} speed={40} decodeDelay={800} startDelay={500} />
-                  </motion.div>
-                )
-              ))}
-            </AnimatePresence>
+
+            {/* 2. Le conteneur libre pour les images */}
+            <div className="absolute inset-0 z-10 w-full h-full">
+              <AnimatePresence>
+                {pageData.map((panel, index) => (
+                  index < visiblePanels && (
+                    <motion.div 
+                      key={panel.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className={`z-10 ${panel.layout}`}
+                    >
+                      {panel.image && (
+                        <img 
+                          src={panel.image} 
+                          alt={`Case ${panel.id}`} 
+                          className="w-full h-full object-cover" 
+                        />
+                      )}
+
+                      {/* Onomatopée manga */}
+                      {panel.onomatopoeia && (
+                        <motion.img
+                          src={panel.onomatopoeia}
+                          alt="SFX"
+                          initial={{ opacity: 0, scale: 3, rotate: -8 }}
+                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                          className={`absolute z-30 h-auto pointer-events-none drop-shadow-[0_0_20px_rgba(255,255,255,0.6)] ${panel.onoStyle || 'inset-0 m-auto w-[40%]'}`}
+                        />
+                      )}
+
+                      {/* Bulles */}
+                      {(panel.textJp || panel.textFr) && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ delay: 0.3, type: "spring" }}
+                          className={`absolute z-30 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[40%] min-h-[3.5rem] shadow-md ${panel.bubbleStyle || 'bottom-4 left-4'}`}
+                        >
+                          <Typewriter 
+                            textJp={panel.textJp || ""} 
+                            textFr={panel.textFr || ""} 
+                            speed={40} 
+                            decodeDelay={800} 
+                            startDelay={500} 
+                          />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )
+                ))}
+              </AnimatePresence>
+            </div>
           </div>
         ) : (
-          /* === MODE CASES CLASSIQUE === */
+          /* ==========================================
+             MODE CLASSIQUE : GRILLE (Pour la page 1)
+             ========================================== */
           <div className="w-full bg-white p-2 gap-2 grid grid-cols-2 shadow-2xl">
             <AnimatePresence>
               {pageData.map((panel, index) => (
@@ -120,18 +250,30 @@ export default function ComicPage() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    className={`relative bg-black border-2 border-black flex items-center justify-center overflow-hidden ${panel.layout}`}
+                    className={`relative bg-black flex items-center justify-center overflow-hidden ${panel.layout}`}
                   >
-                    <span className="text-white/20 font-bold text-4xl">CASE {panel.id}</span>
+                    {panel.image ? (
+                      <img src={panel.image} alt={`Case ${panel.id}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white/20 font-bold text-4xl">CASE {panel.id}</span>
+                    )}
                     
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ delay: 0.3, type: "spring" }}
-                      className="absolute bottom-4 left-4 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[80%] min-h-[3.5rem] shadow-md"
-                    >
-                      <Typewriter textJp={panel.textJp} textFr={panel.textFr} speed={40} decodeDelay={800} startDelay={500} />
-                    </motion.div>
+                    {(panel.textJp || panel.textFr) && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ delay: 0.3, type: "spring" }}
+                        className="absolute bottom-4 left-4 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[80%] min-h-[3.5rem] shadow-md"
+                      >
+                        <Typewriter 
+                          textJp={panel.textJp || ""} 
+                          textFr={panel.textFr || ""} 
+                          speed={40} 
+                          decodeDelay={800} 
+                          startDelay={500} 
+                        />
+                      </motion.div>
+                    )}
                   </motion.div>
                 )
               ))}
@@ -152,10 +294,8 @@ export default function ComicPage() {
         )}
       </div>
 
-      {/* Barre de navigation des pages */}
+      {/* Barre de navigation */}
       <div className="w-full max-w-5xl flex items-center justify-between mt-auto pt-4 border-t border-neutral-700">
-        
-        {/* Bouton Précédent (Caché sur la page 1) */}
         {currentPage > 1 ? (
           <Link 
             href={`/lire/${currentPage - 1}`}
@@ -164,14 +304,13 @@ export default function ComicPage() {
             ← Précédent
           </Link>
         ) : (
-          <div></div> // Espace vide pour garder le bouton Suivant à droite
+          <div></div>
         )}
 
         <div className="text-neutral-500 font-medium">
           Page {currentPage} / {TOTAL_PAGES}
         </div>
 
-        {/* Bouton Suivant (Caché sur la dernière page) */}
         {currentPage < TOTAL_PAGES ? (
           <Link 
             href={`/lire/${currentPage + 1}`}
@@ -180,9 +319,8 @@ export default function ComicPage() {
             Suivant →
           </Link>
         ) : (
-          <div></div> // Espace vide pour garder l'équilibre
+          <div></div>
         )}
-        
       </div>
     </div>
   );
