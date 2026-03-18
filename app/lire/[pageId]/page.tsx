@@ -43,7 +43,7 @@ const allPagesData: Record<number, {
   },
   3: {
     overlayMask: "/3_ligne.png",
-    bgm: "/audio/ikari.mp3", // <-- AJOUT DE LA MUSIQUE ICI
+    bgm: "/audio/ikari.mp3",
     simultaneous: true,
     panels: [
       { id: 1, layout: "absolute inset-0 w-full h-full z-0", image: "/3_fond.png" },
@@ -56,6 +56,28 @@ const allPagesData: Record<number, {
         textFr: "Désolé les gars, j'ai fini mon app fullstack ce matin. Vous serez juste mon échauffement.",
         bubbleStyle: "bottom-[5%] left-[5%] max-w-[60%]"
       },
+    ],
+  },
+  4: {
+    overlayMask: "/4_ligne.png",
+    panels: [
+      // 1er clic (id: 1) : Tranche de DROITE (Sens manga)
+      { id: 1, layout: "absolute top-0 right-0 w-[40%] h-full", image: "/cover.jpg" },
+      // 2ème clic (id: 2) : Tranche du MILIEU
+      { id: 2, layout: "absolute top-0 left-[30%] w-[40%] h-full", image: "/cover.jpg" },
+      // 3ème clic (id: 3) : Tranche de GAUCHE
+      { id: 3, layout: "absolute top-0 left-0 w-[40%] h-full", image: "/cover.jpg" },
+    ],
+  },
+  5: {
+    overlayMask: "/5_ligne.png",
+    panels: [
+      // 1er clic (id: 1) : Tranche du HAUT (prend 60% pour passer bien sous la ligne du milieu)
+      { id: 1, layout: "absolute top-0 left-0 w-full h-[60%]", image: "/cover.jpg" },
+      // 2ème clic (id: 2) : Tranche BAS DROITE (Sens manga)
+      { id: 2, layout: "absolute bottom-0 right-0 w-[55%] h-[50%]", image: "/cover.jpg" },
+      // 3ème clic (id: 3) : Tranche BAS GAUCHE
+      { id: 3, layout: "absolute bottom-0 left-0 w-[55%] h-[50%]", image: "/cover.jpg" },
     ],
   },
 };
