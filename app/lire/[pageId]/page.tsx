@@ -42,8 +42,8 @@ const allPagesData: Record<number, {
     bgm: "/audio/akatsuki.mp3",
     panels: [
       { id: 1, layout: "absolute inset-0 w-full h-full", image: "/2_1.png", onomatopoeia: "/ono.png", onoStyle: "right-[2%] top-[2%] w-[20%]", sfx: "/audio/boss-apparition.mp3" },
-      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/2_2.png", textJp: "ラファマル、貴重なものをください！", textFr: "Donne-nous le Rouleau des commandes Dockers Rafamaru !", bubbleStyle: "bottom-[3%] right-[2%] left-auto", voice: "/audio/pain-jiraiya-sensei.mp3" },
-      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/2_3.png", textJp: "7対1？それだけ？S3を取ったばかりだ、お前らなんか怖くない！", textFr: "C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SharinCode !!!", bubbleStyle: "bottom-[3%] left-[2%]", sfxChain: ["/audio/raf_2.WAV", "/audio/sharingan.mp3"] },
+      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/2_2.png", textJp: "ラファマル、貴重なものをください！", textFr: "Donne-nous le Rouleau des commandes Dockers Rafamaru !", bubbleStyle: "bottom-[3%] right-[2%] left-auto", voice: "/audio/lucas_1.wav" },
+      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/2_3.png", textJp: "7対1？それだけ？S3を取ったばかりだ、お前らなんか怖くない！", textFr: "C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SharinCode !!!", bubbleStyle: "bottom-[3%] left-[2%]", voice: "/audio/raf_2.mp3"},
     ],
   },
   3: {
@@ -81,13 +81,17 @@ const allPagesData: Record<number, {
         layout: "absolute inset-0 w-full h-full", 
         image: "/4_2.png",
         textJp: "見つけたぞ！",
-        textFr: "Le fameux parchemin du Docker Jutsu...",
+        sfx: "/audio/raf_4.WAV",
+        textFr: "Eh... Vous n'êtes pas prêts a voir ma maitrise parfaite de l'hebergement !",
         bubbleStyle: "top-[10%] left-[38%] w-[25%]" 
       },
       { 
         id: 3, 
         layout: "absolute inset-0 w-full h-full", 
         image: "/4_1.png",
+        textJp: "これでお前たちを倒せる！",
+        textFr: "Quoi !? Mais quelle est cette technique ?!",
+        sfx: "/audio/mathis_1.WAV",
         onomatopoeia: "/4_ono.png",
         onoStyle: "top-[15%] left-[5%] w-[25%]" 
       },
