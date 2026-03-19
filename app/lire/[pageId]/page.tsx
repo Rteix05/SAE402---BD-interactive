@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Typewriter from '@/components/Typewriter'; 
+
+// ==========================================
+// VARIABLES GLOBALES POUR L'AUDIO
+// ==========================================
+let globalBgm: HTMLAudioElement | null = null;
+let currentBgmSrc: string | null = null;
 
 const allPagesData: Record<number, {
   overlayMask?: string;
@@ -36,9 +42,9 @@ const allPagesData: Record<number, {
     overlayMask: "/2_ligne.png",
     bgm: "/audio/akatsuki.mp3",
     panels: [
-      { id: 1, layout: "absolute inset-0 w-full h-full", image: "/2_1.png", onomatopoeia: "/ono.png", onoStyle: "right-[2%] top-[2%] w-[20%]", sfx: "/audio/yooo.mp3" },
+      { id: 1, layout: "absolute inset-0 w-full h-full", image: "/2_1.png", onomatopoeia: "/ono.png", onoStyle: "right-[2%] top-[2%] w-[20%]", sfx: "/audio/boss-apparition.mp3" },
       { id: 2, layout: "absolute inset-0 w-full h-full", image: "/2_2.png", textJp: "ラファマル、貴重なものをください！", textFr: "Donne-nous le Rouleau des commandes Dockers Rafamaru !", bubbleStyle: "bottom-[3%] right-[2%] left-auto", voice: "/audio/pain-jiraiya-sensei.mp3" },
-      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/2_3.png", textJp: "7対1？それだけ？S3を取ったばかりだ、お前らなんか怖くない！", textFr: "C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SharinCode !!!", bubbleStyle: "bottom-[3%] left-[2%]", sfxChain: ["/audio/raf_2.WAV", "/audio/sharingan2.mp3"] },
+      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/2_3.png", textJp: "7対1？それだけ？S3を取ったばかりだ、お前らなんか怖くない！", textFr: "C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SharinCode !!!", bubbleStyle: "bottom-[3%] left-[2%]", sfxChain: ["/audio/raf_2.WAV", "/audio/sharingan.mp3"] },
     ],
   },
   3: {
@@ -61,18 +67,42 @@ const allPagesData: Record<number, {
   },
   4: {
     overlayMask: "/4_ligne.png",
+    bgm: "/audio/ikari.mp3", 
     panels: [
-      { id: 1, layout: "absolute top-0 right-0 w-[40%] h-full", image: "/cover.jpg" },
-      { id: 2, layout: "absolute top-0 left-[30%] w-[40%] h-full", image: "/cover.jpg" },
-      { id: 3, layout: "absolute top-0 left-0 w-[40%] h-full", image: "/cover.jpg" },
+      // 1er clic : Panneau de DROITE
+      { 
+        id: 1, 
+        layout: "absolute inset-0 w-full h-full", 
+        image: "/4_3.png",
+        textJp: "これは…！",
+        textFr: "M-Mais... Qu'est-ce que c'est que ce code ?!",
+        bubbleStyle: "bottom-[10%] right-[3%] w-[28%] md:w-[22%] aspect-square !bg-transparent !border-none !shadow-none bg-[url('/nuage.png')] bg-contain bg-center bg-no-repeat !p-6 md:!p-8 flex items-center justify-center text-center text-xs md:text-sm font-black leading-tight"
+      },
+      // 2ème clic : Panneau du MILIEU (Attaques 1 et 2)
+      { 
+        id: 2, 
+        layout: "absolute inset-0 w-full h-full", 
+        image: "/4_2.png",
+        textJp: "見つけたぞ！",
+        textFr: "Le fameux parchemin du Docker Jutsu...",
+        bubbleStyle: "top-[10%] left-[38%] w-[25%]" 
+      },
+      // 3ème clic : Panneau de GAUCHE (Attaques 3 et 4)
+      { 
+        id: 3, 
+        layout: "absolute inset-0 w-full h-full", 
+        image: "/4_1.png",
+        onomatopoeia: "/4_ono.png",
+        onoStyle: "top-[15%] left-[5%] w-[25%]" 
+      },
     ],
   },
   5: {
     overlayMask: "/5_ligne.png",
     panels: [
-      { id: 1, layout: "absolute top-0 left-0 w-full h-[60%]", image: "/cover.jpg" },
-      { id: 2, layout: "absolute bottom-0 right-0 w-[55%] h-[50%]", image: "/cover.jpg" },
-      { id: 3, layout: "absolute bottom-0 left-0 w-[55%] h-[50%]", image: "/cover.jpg" },
+      { id: 1, layout: "absolute inset-0 w-full h-full", image: "/5_1.png" },
+      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/5_2.png" },
+      { id: 3, layout: "absolute inset-0 w-full h-full", image: "/5_3.png" },
     ],
   },
 };
@@ -105,31 +135,195 @@ export default function ComicPage() {
 
   const [visiblePanels, setVisiblePanels] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(false);
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  const [showWarning, setShowWarning] = useState<boolean>(false);
+  const [warningText, setWarningText] = useState<string>("Hé ! Ne sautez pas des cases !");
+
+  // ========================================================
+  // ÉTAT DU TERMINAL
+  // 0: inactif
+  // 1: Attente "React-sengan" (sur 4_2)
+  // 2: Attente "Git-Dori" (sur 4_2)
+  // 3: Fini sur 4_2, attente du prochain clic
+  // 4: Attente "API-terasu" (sur 4_1)
+  // 5: Attente "Jsonagi" (sur 4_1)
+  // 6: TOUT FINI
+  // ========================================================
+  const [cliState, setCliState] = useState<number>(0); 
+  const [cliInput, setCliInput] = useState<string>("");
+  const [isShaking, setIsShaking] = useState<boolean>(false);
+
+  const attack1Target = "React-sengan";
+  const attack2Target = "Git-Dori";
+  const attack3Target = "API-terasu";
+  const attack4Target = "Jsonagi";
 
   const startBgm = () => {
-    if (!currentPageData.bgm || bgmRef.current) return;
-    const bgm = new Audio(currentPageData.bgm);
-    bgm.loop = true;
-    bgm.volume = 0.75;
-    bgm.play().catch(e => console.log("BGM Error:", e));
-    bgmRef.current = bgm;
+    const targetBgmSrc = currentPageData.bgm;
+
+    if (!targetBgmSrc) {
+      if (globalBgm) {
+        smoothVolume(globalBgm, 0, 1000);
+        setTimeout(() => globalBgm?.pause(), 1000);
+        globalBgm = null;
+        currentBgmSrc = null;
+      }
+      return;
+    }
+
+    if (globalBgm && currentBgmSrc === targetBgmSrc) {
+        if (globalBgm.volume < 0.75) smoothVolume(globalBgm, 0.75, 500);
+        return;
+    }
+
+    if (globalBgm) {
+      smoothVolume(globalBgm, 0, 1000); 
+      setTimeout(() => globalBgm?.pause(), 1000);
+    }
+
+    const newBgm = new Audio(targetBgmSrc);
+    newBgm.loop = true;
+    newBgm.volume = 0; 
+    newBgm.play().catch(e => console.log("BGM Error:", e));
+    smoothVolume(newBgm, 0.75, 1000); 
+
+    globalBgm = newBgm;
+    currentBgmSrc = targetBgmSrc;
   };
 
   useEffect(() => {
-    return () => {
-      if (bgmRef.current) {
-        bgmRef.current.pause();
-        bgmRef.current = null;
+    startBgm();
+  }, [currentPage]);
+
+  // ========================================================
+  // LOGIQUE DU CLAVIER (CLI)
+  // ========================================================
+  useEffect(() => {
+    // Affiche le 1er terminal sur la case du milieu (4_2.png)
+    if (currentPage === 4 && visiblePanels === 2 && cliState === 0) {
+      setCliState(1); 
+    }
+    // Affiche le 2ème terminal sur la case de gauche (4_1.png)
+    if (currentPage === 4 && visiblePanels === 3 && cliState === 3) {
+      setCliState(4); 
+    }
+  }, [currentPage, visiblePanels, cliState]);
+
+  useEffect(() => {
+    if (![1, 2, 4, 5].includes(cliState)) return; // On écoute que pendant ces états
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLocked) return; 
+
+      const targetString = 
+        cliState === 1 ? attack1Target : 
+        cliState === 2 ? attack2Target : 
+        cliState === 4 ? attack3Target : 
+        attack4Target; // état 5
+
+      if (e.key === "Enter") {
+        if (cliInput === targetString) {
+          executeAttackSequence(cliState);
+        } else {
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 200);
+        }
+      } 
+      else if (e.key === "Backspace") {
+        setCliInput(prev => prev.slice(0, -1));
+      } 
+      else if (e.key.length === 1) {
+        if (e.key === " ") e.preventDefault(); 
+        if (cliInput.length < targetString.length) {
+          setCliInput(targetString.substring(0, cliInput.length + 2));
+        }
       }
     };
-  }, [currentPage]);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cliState, cliInput, isLocked]);
+
+  const executeAttackSequence = (currentState: number) => {
+    setIsLocked(true);
+    setIsShaking(true); 
+    
+    if (globalBgm) smoothVolume(globalBgm, 0.2, 300);
+
+    let voiceSrc = "";
+    let sfxSrc = "";
+
+    // Configuration des sons pour chaque attaque (MODIFIE LES LIENS SI BESOIN)
+    if (currentState === 1) {
+      voiceSrc = "/audio/att_react.WAV"; sfxSrc = "/audio/rasengan.mp3";
+    } else if (currentState === 2) {
+      voiceSrc = "/audio/att_git.WAV"; sfxSrc = "/audio/chidori.mp3";
+    } else if (currentState === 4) {
+      voiceSrc = "/audio/att_api.WAV"; sfxSrc = "/audio/amaterasu.mp3"; // <-- Modifier ici
+    } else if (currentState === 5) {
+      voiceSrc = "/audio/att_json.WAV"; sfxSrc = "/audio/izanagi.mp3"; // <-- Modifier ici
+    }
+
+    const voiceAudio = new Audio(voiceSrc);
+    const sfxAudio = new Audio(sfxSrc);
+
+    voiceAudio.volume = 1.0;
+    sfxAudio.volume = 1.0;
+
+    const fallbackToNext = () => {
+      setTimeout(() => {
+        setIsShaking(false);
+        setIsLocked(false);
+        if (globalBgm) smoothVolume(globalBgm, 0.75, 500);
+        
+        if (currentState === 1) { setCliState(2); setCliInput(""); } 
+        else if (currentState === 2) { setCliState(3); setCliInput(""); }
+        else if (currentState === 4) { setCliState(5); setCliInput(""); }
+        else if (currentState === 5) { setCliState(6); setCliInput(""); }
+      }, 1500);
+    };
+
+    voiceAudio.play().catch(() => fallbackToNext());
+
+    voiceAudio.onended = () => {
+      sfxAudio.play().catch(() => fallbackToNext());
+
+      sfxAudio.onended = () => {
+        setIsShaking(false);
+        setIsLocked(false);
+        if (globalBgm) smoothVolume(globalBgm, 0.75, 500); 
+
+        if (currentState === 1) { setCliState(2); setCliInput(""); } 
+        else if (currentState === 2) { setCliState(3); setCliInput(""); }
+        else if (currentState === 4) { setCliState(5); setCliInput(""); }
+        else if (currentState === 5) { setCliState(6); setCliInput(""); }
+      };
+    };
+  };
+
+  // ========================================================
 
   const handleNextPanel = () => {
     if (isLocked) return;
 
+    // BLOQUE LA PROGRESSION SI LE TERMINAL DU MILIEU N'EST PAS FINI
+    if (currentPage === 4 && visiblePanels === 2 && cliState < 3) {
+      setWarningText("Tapez sur le clavier pour lancer l'attaque !");
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 3000);
+      return;
+    }
+    
+    // BLOQUE LA PROGRESSION SI LE TERMINAL DE GAUCHE N'EST PAS FINI
+    if (currentPage === 4 && visiblePanels === 3 && cliState < 6) {
+      setWarningText("Tapez sur le clavier pour lancer l'attaque !");
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 3000);
+      return;
+    }
+
+    setShowWarning(false);
+
     if (visiblePanels < pageData.length) {
-      // Déclenche raf_3.WAV au premier clic sur la page 3
       if (currentPage === 3 && visiblePanels === 0 && pageData[2]?.sfx) {
         const audio = new Audio(pageData[2].sfx);
         audio.volume = 1.0;
@@ -146,8 +340,8 @@ export default function ComicPage() {
         sfx.play().catch(e => console.log("SFX Error:", e));
       }
 
-      if (nextPanel.voice && bgmRef.current) {
-        const bgm = bgmRef.current;
+      if (nextPanel.voice && globalBgm) {
+        const bgm = globalBgm;
         smoothVolume(bgm, 0.3, 500);
         const voice = new Audio(nextPanel.voice);
         voice.volume = 1.0;
@@ -158,11 +352,11 @@ export default function ComicPage() {
       }
 
       if (nextPanel.sfxChain && nextPanel.sfxChain.length > 0) {
-        if (bgmRef.current) smoothVolume(bgmRef.current, 0.3, 500);
+        if (globalBgm) smoothVolume(globalBgm, 0.3, 500);
 
         const playNextSound = (index: number) => {
           if (index >= nextPanel.sfxChain!.length) {
-            if (bgmRef.current) smoothVolume(bgmRef.current, 0.75, 500);
+            if (globalBgm) smoothVolume(globalBgm, 0.75, 500);
             return;
           }
 
@@ -192,26 +386,48 @@ export default function ComicPage() {
         setVisiblePanels(prev => prev + 1);
       }
 
+      let lockDuration = 1500; 
+
+      if (currentPage === 2 && nextPanel.id === 3) lockDuration = 13000;
+      if (currentPage === 1 && nextPanel.id === 2) lockDuration = 6200;
+      if (currentPage === 3 && nextPanel.id === 1) lockDuration = 7000;
+
       setTimeout(() => {
         setIsLocked(false);
-      }, 1500);
+      }, lockDuration);
+    }
+  };
+
+  const handleNextPageClick = (e: React.MouseEvent) => {
+    // MODIFIE ICI : On autorise le changement de page SEULEMENT SI le cliState a atteint 6
+    if (visiblePanels < pageData.length || isLocked || (currentPage === 4 && cliState < 6)) {
+      e.preventDefault(); 
+      setWarningText("Veuillez finir cette page.");
+      setShowWarning(true); 
+      
+      setTimeout(() => {
+        setShowWarning(false);
+      }, 3000);
     }
   };
 
   const hasMask = !!currentPageData.overlayMask;
 
   return (
-    <div className="min-h-screen bg-neutral-900 flex flex-col items-center justify-center py-8 px-6 md:px-20 overflow-hidden">
+    <motion.div 
+      key={currentPage}
+      initial={{ opacity: 0, filter: "blur(8px)" }} 
+      animate={{ opacity: 1, filter: "blur(0px)" }} 
+      transition={{ duration: 0.6, ease: "easeOut" }} 
+      className="min-h-screen bg-neutral-900 flex flex-col items-center justify-center py-8 px-6 md:px-20 overflow-hidden"
+    >
       
-      {/* Indicateur de page au-dessus de la BD */}
       <div className="text-neutral-500 font-bold mb-6 tracking-widest uppercase">
         Page {currentPage} / {TOTAL_PAGES}
       </div>
 
-      {/* Conteneur de la BD et des boutons latéraux */}
       <div className="relative w-full max-w-5xl flex flex-col items-center justify-center">
         
-        {/* BOUTON PRÉCÉDENT (Flottant à gauche) */}
         {currentPage > 1 && (
           <Link 
             href={`/lire/${currentPage - 1}`}
@@ -222,9 +438,10 @@ export default function ComicPage() {
           </Link>
         )}
 
-        {/* ZONE CLIQUABLE PRINCIPALE (La Bande Dessinée) */}
-        <div 
+        <motion.div 
           className={`w-full ${isLocked ? 'cursor-wait' : 'cursor-pointer'}`}
+          animate={isShaking ? { x: [-10, 10, -10, 10, -5, 5, 0], y: [-5, 5, -5, 5, -2, 2, 0] } : { x: 0, y: 0 }}
+          transition={isShaking ? { repeat: Infinity, duration: 0.3 } : { duration: 0 }}
           onClick={handleNextPanel}
         >
           {hasMask ? (
@@ -268,6 +485,59 @@ export default function ComicPage() {
                             <Typewriter textJp={panel.textJp || ""} textFr={panel.textFr || ""} speed={40} decodeDelay={800} startDelay={500} />
                           </motion.div>
                         )}
+
+                        {/* ======================================================== */}
+                        {/* TERMINAL CLI #1 (Sur la case du milieu, id: 2)           */}
+                        {/* ======================================================== */}
+                        {currentPage === 4 && panel.id === 2 && cliState > 0 && cliState < 3 && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+                          >
+                            <div className="text-[10px] md:text-xs text-green-500">
+                              <p className="mb-1 opacity-70">root@sae402:~# init</p>
+                              <p className="mb-2 md:mb-3 text-green-400 font-bold animate-pulse">
+                                COMMANDE {cliState}/2...
+                              </p>
+                              <div className="flex text-xs md:text-sm text-green-300 font-bold">
+                                <span className="mr-1 md:mr-2">&gt;</span>
+                                <span>{cliInput}</span>
+                                {!isLocked && <span className="inline-block w-1.5 md:w-2 h-3 md:h-4 bg-green-500 animate-ping ml-1" />}
+                              </div>
+                              <p className="mt-3 md:mt-4 text-[8px] md:text-[10px] text-green-700 opacity-80 uppercase tracking-widest text-center leading-tight">
+                                {isLocked ? "EXÉCUTION..." : "Tapez puis ENTRÉE"}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+
+                       {/* ======================================================== */}
+{/* ======================================================== */}
+{/* TERMINAL CLI #2 (Sur la case de gauche, id: 3)           */}
+{/* ======================================================== */}
+{currentPage === 4 && panel.id === 3 && cliState > 3 && cliState < 6 && (
+  <motion.div 
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="absolute top-[70%] left-[20%] -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+  >
+    <div className="text-[10px] md:text-xs text-green-500">
+      <p className="mb-1 opacity-70">root@sae402:~# final_atk</p>
+      <p className="mb-2 md:mb-3 text-green-400 font-bold animate-pulse">
+        COMMANDE {cliState - 3}/2...
+      </p>
+      <div className="flex text-xs md:text-sm text-green-300 font-bold">
+        <span className="mr-1 md:mr-2">&gt;</span>
+        <span>{cliInput}</span>
+        {!isLocked && <span className="inline-block w-1.5 md:w-2 h-3 md:h-4 bg-green-500 animate-ping ml-1" />}
+      </div>
+      <p className="mt-3 md:mt-4 text-[8px] md:text-[10px] text-green-700 opacity-80 uppercase tracking-widest text-center leading-tight">
+        {isLocked ? "EXÉCUTION..." : "Tapez puis ENTRÉE"}
+      </p>
+    </div>
+  </motion.div>
+)}
                       </motion.div>
                     )
                   ))}
@@ -312,28 +582,47 @@ export default function ComicPage() {
               ))}
             </div>
           )}
-        </div>
+        </motion.div>
 
-        {/* BOUTON SUIVANT (Flottant à droite) */}
         {currentPage < TOTAL_PAGES && (
-          <Link 
-            href={`/lire/${currentPage + 1}`}
-            className="absolute top-1/2 -translate-y-1/2 -right-6 md:-right-20 z-50 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-orange-600 hover:bg-orange-500 hover:scale-110 text-white rounded-full transition-all border-2 border-orange-400 shadow-[0_0_15px_rgba(234,88,12,0.5)]"
-            title="Page suivante"
-          >
-            <svg className="w-6 h-6 md:w-8 md:h-8 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-          </Link>
+          <div className="absolute top-1/2 -translate-y-1/2 -right-6 md:-right-20 z-50 flex flex-col items-center">
+            
+            <AnimatePresence>
+              {showWarning && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max bg-red-600 text-white px-4 py-2 rounded-lg shadow-[0_4px_15px_rgba(220,38,38,0.5)] text-sm md:text-base font-bold pointer-events-none before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-t-red-600"
+                >
+                  {warningText}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Link 
+              href={`/lire/${currentPage + 1}`}
+              onClick={handleNextPageClick} 
+              className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 shadow-[0_0_15px_rgba(234,88,12,0.5)] ${
+                visiblePanels < pageData.length || isLocked || (currentPage === 4 && cliState < 6)
+                  ? 'bg-neutral-600 border-neutral-400 text-neutral-300 shadow-none cursor-not-allowed' 
+                  : 'bg-orange-600 hover:bg-orange-500 hover:scale-110 text-white border-orange-400' 
+              }`}
+              title="Page suivante"
+            >
+              <svg className="w-6 h-6 md:w-8 md:h-8 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </Link>
+          </div>
         )}
 
       </div>
 
-      {/* Texte d'aide en bas */}
       {visiblePanels === 0 && (
         <p className="text-white/50 mt-12 animate-pulse text-lg font-semibold text-center">
           Cliquez sur la case pour lire la suite...
         </p>
       )}
 
-    </div>
+    </motion.div>
   );
 }
