@@ -34,7 +34,7 @@ const cloudDriftVariants = {
             duration: i % 2 === 0 ? 85 : 110,
             delay: i * 2,
             repeat: Infinity,
-            ease: 'linear',
+            ease: [0, 0, 1, 1],
         },
     }),
 };
