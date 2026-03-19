@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { VariantFunction, TargetAndTransition } from 'framer-motion';
+import type { TargetAndTransition } from 'framer-motion';
 
 // --- VARIANTS D'ANIMATION ---
 
@@ -30,7 +30,7 @@ const cloudRevealVariants = {
 };
 
 const cloudDriftVariants = {
-    animate: ((custom: number): TargetAndTransition => ({
+    animate: (custom: number): TargetAndTransition => ({
         x: ['-20vw', '120vw'],
         transition: {
             duration: custom % 2 === 0 ? 85 : 110,
@@ -38,7 +38,7 @@ const cloudDriftVariants = {
             repeat: Infinity,
             ease: "linear" as const,
         },
-    })) as VariantFunction,
+    }),
 };
 
 export default function Home() {
