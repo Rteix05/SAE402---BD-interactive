@@ -1,8 +1,10 @@
 "use client";
+
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { VariantFunction, TargetAndTransition } from 'framer-motion';
 
 // --- VARIANTS D'ANIMATION ---
 
@@ -28,15 +30,15 @@ const cloudRevealVariants = {
 };
 
 const cloudDriftVariants = {
-    animate: (i: number) => ({
+    animate: ((custom: number): TargetAndTransition => ({
         x: ['-20vw', '120vw'],
         transition: {
-            duration: i % 2 === 0 ? 85 : 110,
-            delay: i * 2,
+            duration: custom % 2 === 0 ? 85 : 110,
+            delay: custom * 2,
             repeat: Infinity,
-            ease: [0, 0, 1, 1],
+            ease: "linear" as const,
         },
-    }),
+    })) as VariantFunction,
 };
 
 export default function Home() {
