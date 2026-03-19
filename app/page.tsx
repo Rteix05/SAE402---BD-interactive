@@ -24,7 +24,7 @@ const cloudRevealVariants = {
         transition: {
             duration: 3.5,
             delay: 0.1,
-            ease: [0.45, 0, 0.55, 1],
+            ease: "easeInOut" as const,
         },
     }),
 };
