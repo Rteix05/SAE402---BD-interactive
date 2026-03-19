@@ -1,14 +1,12 @@
 "use client";
 
+import { useSpring, animated } from '@react-spring/web';
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Typewriter from '@/components/Typewriter'; 
 
-// ==========================================
-// VARIABLES GLOBALES POUR L'AUDIO
-// ==========================================
 let globalBgm: HTMLAudioElement | null = null;
 let currentBgmSrc: string | null = null;
 
@@ -28,6 +26,7 @@ const allPagesData: Record<number, {
     sfx?: string; 
     voice?: string; 
     sfxChain?: string[]; 
+    customStack?: boolean;
   }[];
 }> = {
   1: {
@@ -69,16 +68,14 @@ const allPagesData: Record<number, {
     overlayMask: "/4_ligne.png",
     bgm: "/audio/ikari.mp3", 
     panels: [
-      // 1er clic : Panneau de DROITE
       { 
-        id: 1, 
+        id: 1,
         layout: "absolute inset-0 w-full h-full", 
         image: "/4_3.png",
         textJp: "これは…！",
         textFr: "M-Mais... Qu'est-ce que c'est que ce code ?!",
         bubbleStyle: "bottom-[10%] right-[3%] w-[28%] md:w-[22%] aspect-square !bg-transparent !border-none !shadow-none bg-[url('/nuage.png')] bg-contain bg-center bg-no-repeat !p-6 md:!p-8 flex items-center justify-center text-center text-xs md:text-sm font-black leading-tight"
       },
-      // 2ème clic : Panneau du MILIEU (Attaques 1 et 2)
       { 
         id: 2, 
         layout: "absolute inset-0 w-full h-full", 
@@ -87,7 +84,6 @@ const allPagesData: Record<number, {
         textFr: "Le fameux parchemin du Docker Jutsu...",
         bubbleStyle: "top-[10%] left-[38%] w-[25%]" 
       },
-      // 3ème clic : Panneau de GAUCHE (Attaques 3 et 4)
       { 
         id: 3, 
         layout: "absolute inset-0 w-full h-full", 
@@ -100,14 +96,18 @@ const allPagesData: Record<number, {
   5: {
     overlayMask: "/5_ligne.png",
     panels: [
-      { id: 1, layout: "absolute inset-0 w-full h-full", image: "/5_1.png" },
+      {
+        id: 1,
+        layout: "absolute inset-0 w-full h-full",
+        customStack: true
+      },
       { id: 2, layout: "absolute inset-0 w-full h-full", image: "/5_2.png" },
       { id: 3, layout: "absolute inset-0 w-full h-full", image: "/5_3.png" },
     ],
   },
 };
 
-const TOTAL_PAGES = 6;
+const TOTAL_PAGES = 5;
 
 function smoothVolume(audio: HTMLAudioElement, target: number, duration: number = 500) {
   const start = audio.volume;
@@ -127,6 +127,81 @@ function smoothVolume(audio: HTMLAudioElement, target: number, duration: number 
 }
 
 export default function ComicPage() {
+  const [lucasHits, setLucasHits] = useState(0);
+  const [mathisHits, setMathisHits] = useState(0);
+  const [lucasDead, setLucasDead] = useState(false);
+  const [mathisDead, setMathisDead] = useState(false);
+
+  // UTILISATION DE TON FILTRE ROUGE EXACT
+  const redFilter = 'saturate(200%) hue-rotate(-30deg) brightness(125%) contrast(150%)';
+  const normalFilter = 'saturate(100%) hue-rotate(0deg) brightness(100%) contrast(100%)';
+
+  const [lucasProps, lucasApi] = useSpring(() => ({
+    x: 0, y: 0, rotate: 0, opacity: 1, filter: normalFilter
+  }));
+
+  const [mathisProps, mathisApi] = useSpring(() => ({
+    x: 0, y: 0, rotate: 0, opacity: 1, filter: normalFilter
+  }));
+
+  const handleLucasClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (lucasDead) return;
+
+    const nextHits = lucasHits + 1;
+    setLucasHits(nextHits);
+
+    if (nextHits >= 10) {
+      setLucasDead(true);
+      lucasApi.start({ 
+        y: 300, 
+        opacity: 0, 
+        filter: redFilter,
+        config: { tension: 80, friction: 12 } 
+      });
+    } else {
+      lucasApi.start({
+        from: { x: 0, y: 0, rotate: 0, filter: redFilter },
+        to: async (next) => {
+          await next({ x: -15, y: -5, rotate: -5 });
+          await next({ x: 15, y: 5, rotate: 5 });
+          await next({ x: 0, y: 0, rotate: 0, filter: normalFilter });
+        },
+        config: { tension: 500, friction: 10 },
+        reset: true
+      });
+    }
+  };
+
+  const handleMathisClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (mathisDead) return;
+
+    const nextHits = mathisHits + 1;
+    setMathisHits(nextHits);
+
+    if (nextHits >= 10) {
+      setMathisDead(true);
+      mathisApi.start({ 
+        y: 300, 
+        opacity: 0, 
+        filter: redFilter,
+        config: { tension: 80, friction: 12 } 
+      });
+    } else {
+      mathisApi.start({
+        from: { x: 0, y: 0, rotate: 0, filter: redFilter },
+        to: async (next) => {
+          await next({ x: 15, y: -5, rotate: 5 });
+          await next({ x: -15, y: 5, rotate: -5 });
+          await next({ x: 0, y: 0, rotate: 0, filter: normalFilter });
+        },
+        config: { tension: 500, friction: 10 },
+        reset: true
+      });
+    }
+  };
+
   const params = useParams();
   const currentPage = parseInt(params.pageId as string, 10) || 1;
 
@@ -138,22 +213,12 @@ export default function ComicPage() {
   const [showWarning, setShowWarning] = useState<boolean>(false);
   const [warningText, setWarningText] = useState<string>("Hé ! Ne sautez pas des cases !");
 
-  // ========================================================
-  // ÉTAT DU TERMINAL
-  // 0: inactif
-  // 1: Attente "React-sengan" (sur 4_2)
-  // 2: Attente "Git-Dori" (sur 4_2)
-  // 3: Fini sur 4_2, attente du prochain clic
-  // 4: Attente "API-terasu" (sur 4_1)
-  // 5: Attente "Jsonagi" (sur 4_1)
-  // 6: TOUT FINI
-  // ========================================================
   const [cliState, setCliState] = useState<number>(0); 
   const [cliInput, setCliInput] = useState<string>("");
   const [isShaking, setIsShaking] = useState<boolean>(false);
 
   const attack1Target = "React-sengan";
-  const attack2Target = "Git-Dori";
+  const attack2Target = "Docker Jutsu";
   const attack3Target = "API-terasu";
   const attack4Target = "Jsonagi";
 
@@ -194,22 +259,17 @@ export default function ComicPage() {
     startBgm();
   }, [currentPage]);
 
-  // ========================================================
-  // LOGIQUE DU CLAVIER (CLI)
-  // ========================================================
   useEffect(() => {
-    // Affiche le 1er terminal sur la case du milieu (4_2.png)
     if (currentPage === 4 && visiblePanels === 2 && cliState === 0) {
       setCliState(1); 
     }
-    // Affiche le 2ème terminal sur la case de gauche (4_1.png)
     if (currentPage === 4 && visiblePanels === 3 && cliState === 3) {
       setCliState(4); 
     }
   }, [currentPage, visiblePanels, cliState]);
 
   useEffect(() => {
-    if (![1, 2, 4, 5].includes(cliState)) return; // On écoute que pendant ces états
+    if (![1, 2, 4, 5].includes(cliState)) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isLocked) return; 
@@ -218,7 +278,7 @@ export default function ComicPage() {
         cliState === 1 ? attack1Target : 
         cliState === 2 ? attack2Target : 
         cliState === 4 ? attack3Target : 
-        attack4Target; // état 5
+        attack4Target; 
 
       if (e.key === "Enter") {
         if (cliInput === targetString) {
@@ -252,15 +312,14 @@ export default function ComicPage() {
     let voiceSrc = "";
     let sfxSrc = "";
 
-    // Configuration des sons pour chaque attaque (MODIFIE LES LIENS SI BESOIN)
     if (currentState === 1) {
       voiceSrc = "/audio/att_react.WAV"; sfxSrc = "/audio/rasengan.mp3";
     } else if (currentState === 2) {
-      voiceSrc = "/audio/att_git.WAV"; sfxSrc = "/audio/chidori.mp3";
+      voiceSrc = "/audio/att_docker.WAV"; sfxSrc = "/audio/chidori.mp3";
     } else if (currentState === 4) {
-      voiceSrc = "/audio/att_api.WAV"; sfxSrc = "/audio/amaterasu.mp3"; // <-- Modifier ici
+      voiceSrc = "/audio/att_api.WAV"; sfxSrc = "/audio/amaterasu.mp3"; 
     } else if (currentState === 5) {
-      voiceSrc = "/audio/att_json.WAV"; sfxSrc = "/audio/izanagi.mp3"; // <-- Modifier ici
+      voiceSrc = "/audio/att_json.WAV"; sfxSrc = "/audio/izanagi.mp3"; 
     }
 
     const voiceAudio = new Audio(voiceSrc);
@@ -300,22 +359,26 @@ export default function ComicPage() {
     };
   };
 
-  // ========================================================
-
   const handleNextPanel = () => {
     if (isLocked) return;
 
-    // BLOQUE LA PROGRESSION SI LE TERMINAL DU MILIEU N'EST PAS FINI
-    if (currentPage === 4 && visiblePanels === 2 && cliState < 3) {
-      setWarningText("Tapez sur le clavier pour lancer l'attaque !");
-      setShowWarning(true);
-      setTimeout(() => setShowWarning(false), 3000);
-      return;
+    if (currentPage === 4) {
+      if (visiblePanels === 1 && cliState === 1) {
+        setWarningText("Tapez sur le clavier pour lancer la première attaque !");
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return;
+      }
+      if (visiblePanels === 2 && cliState === 3) {
+        setWarningText("Tapez sur le clavier pour lancer la deuxième attaque !");
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return;
+      }
     }
-    
-    // BLOQUE LA PROGRESSION SI LE TERMINAL DE GAUCHE N'EST PAS FINI
-    if (currentPage === 4 && visiblePanels === 3 && cliState < 6) {
-      setWarningText("Tapez sur le clavier pour lancer l'attaque !");
+
+    if (currentPage === 5 && visiblePanels === 1 && (!lucasDead || !mathisDead)) {
+      setWarningText("Battez Lucas et Mathis avant de continuer ! (Cliquez dessus)");
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 3000);
       return;
@@ -399,12 +462,16 @@ export default function ComicPage() {
   };
 
   const handleNextPageClick = (e: React.MouseEvent) => {
-    // MODIFIE ICI : On autorise le changement de page SEULEMENT SI le cliState a atteint 6
     if (visiblePanels < pageData.length || isLocked || (currentPage === 4 && cliState < 6)) {
       e.preventDefault(); 
-      setWarningText("Veuillez finir cette page.");
-      setShowWarning(true); 
       
+      if (currentPage === 5 && (!lucasDead || !mathisDead)) {
+        setWarningText("Battez Lucas et Mathis d'abord ! (Cliquez dessus)");
+      } else {
+        setWarningText("Veuillez finir cette page.");
+      }
+      
+      setShowWarning(true); 
       setTimeout(() => {
         setShowWarning(false);
       }, 3000);
@@ -462,7 +529,60 @@ export default function ComicPage() {
                         transition={{ duration: 0.3 }}
                         className={panel.layout}
                       >
-                        {panel.image && (
+                        {currentPage === 5 && panel.id === 1 && panel.customStack ? (
+                          <>
+                            <img src="/5_1_fond.png" alt="fond" className="w-full h-full object-cover absolute inset-0 z-0 pointer-events-none" />
+                            
+                            <animated.img
+                              src="/5_1_lucas.png"
+                              alt="lucas"
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                zIndex: 10,
+                                mixBlendMode: lucasDead ? 'luminosity' : 'normal',
+                                ...lucasProps
+                              }}
+                              className="pointer-events-none" // Ignore les clics directs pour utiliser la hitbox
+                            />
+                            
+                            <animated.img
+                              src="/5_1_mathis.png"
+                              alt="mathis"
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                zIndex: 20,
+                                mixBlendMode: mathisDead ? 'luminosity' : 'normal',
+                                ...mathisProps
+                              }}
+                              className="pointer-events-none" // Ignore les clics directs pour utiliser la hitbox
+                            />
+                            
+                            <img src="/5_1_premierplan.png" alt="premierplan" className="w-full h-full object-cover absolute inset-0 z-30 pointer-events-none" />
+                            <img src="/5_1_aura.png" alt="aura" className="w-full h-full object-cover absolute inset-0 z-40 mix-blend-screen pointer-events-none" />
+
+                          {/* HITBOX INVISIBLE (Côté Gauche) -> Vise le personnage de gauche */}
+                            {!mathisDead && (
+                              <div 
+                                className="absolute inset-y-0 left-0 w-1/2 z-50 cursor-crosshair"
+                                onClick={handleMathisClick}
+                              />
+                            )}
+
+                            {/* HITBOX INVISIBLE (Côté Droit) -> Vise le personnage de droite */}
+                            {!lucasDead && (
+                              <div 
+                                className="absolute inset-y-0 right-0 w-1/2 z-50 cursor-crosshair"
+                                onClick={handleLucasClick}
+                              />
+                            )}
+                          </>
+                        ) : panel.image && (
                           <img src={panel.image} alt={`Case ${panel.id}`} className="w-full h-full object-cover" />
                         )}
                         {panel.onomatopoeia && (
@@ -486,14 +606,11 @@ export default function ComicPage() {
                           </motion.div>
                         )}
 
-                        {/* ======================================================== */}
-                        {/* TERMINAL CLI #1 (Sur la case du milieu, id: 2)           */}
-                        {/* ======================================================== */}
                         {currentPage === 4 && panel.id === 2 && cliState > 0 && cliState < 3 && (
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+                            className="absolute top-[40%] left-[38%] md:left-[35%] w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
                           >
                             <div className="text-[10px] md:text-xs text-green-500">
                               <p className="mb-1 opacity-70">root@sae402:~# init</p>
@@ -512,32 +629,28 @@ export default function ComicPage() {
                           </motion.div>
                         )}
 
-                       {/* ======================================================== */}
-{/* ======================================================== */}
-{/* TERMINAL CLI #2 (Sur la case de gauche, id: 3)           */}
-{/* ======================================================== */}
-{currentPage === 4 && panel.id === 3 && cliState > 3 && cliState < 6 && (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 1, scale: 1 }}
-    className="absolute top-[70%] left-[20%] -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
-  >
-    <div className="text-[10px] md:text-xs text-green-500">
-      <p className="mb-1 opacity-70">root@sae402:~# final_atk</p>
-      <p className="mb-2 md:mb-3 text-green-400 font-bold animate-pulse">
-        COMMANDE {cliState - 3}/2...
-      </p>
-      <div className="flex text-xs md:text-sm text-green-300 font-bold">
-        <span className="mr-1 md:mr-2">&gt;</span>
-        <span>{cliInput}</span>
-        {!isLocked && <span className="inline-block w-1.5 md:w-2 h-3 md:h-4 bg-green-500 animate-ping ml-1" />}
-      </div>
-      <p className="mt-3 md:mt-4 text-[8px] md:text-[10px] text-green-700 opacity-80 uppercase tracking-widest text-center leading-tight">
-        {isLocked ? "EXÉCUTION..." : "Tapez puis ENTRÉE"}
-      </p>
-    </div>
-  </motion.div>
-)}
+                        {currentPage === 4 && panel.id === 3 && cliState > 3 && cliState < 6 && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute top-[70%] left-[20%] -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+                          >
+                            <div className="text-[10px] md:text-xs text-green-500">
+                              <p className="mb-1 opacity-70">root@sae402:~# final_atk</p>
+                              <p className="mb-2 md:mb-3 text-green-400 font-bold animate-pulse">
+                                COMMANDE {cliState - 3}/2...
+                              </p>
+                              <div className="flex text-xs md:text-sm text-green-300 font-bold">
+                                <span className="mr-1 md:mr-2">&gt;</span>
+                                <span>{cliInput}</span>
+                                {!isLocked && <span className="inline-block w-1.5 md:w-2 h-3 md:h-4 bg-green-500 animate-ping ml-1" />}
+                              </div>
+                              <p className="mt-3 md:mt-4 text-[8px] md:text-[10px] text-green-700 opacity-80 uppercase tracking-widest text-center leading-tight">
+                                {isLocked ? "EXÉCUTION..." : "Tapez puis ENTRÉE"}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
                       </motion.div>
                     )
                   ))}
