@@ -94,8 +94,8 @@ const allPagesData: Record<number, {
         textFr: "Quoi !? Mais quelle est cette technique ?!",
         sfx: "/audio/mathis_1.WAV",
         onomatopoeia: "/4_ono.png",
-        onoStyle: "top-[15%] left-[5%] w-[25%]",
-        bubbleStyle: "bottom-4 left-4 max-w-[25%]"
+        onoStyle: "top-[0%] left-[0%] w-[100%]",
+        bubbleStyle: "bottom-[3%] left-[2%] w-[33%]"
       },
     ],
   },
