@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface TypewriterProps {
   textJp: string;
@@ -8,16 +8,17 @@ interface TypewriterProps {
   speed?: number;
   decodeDelay?: number;
   startDelay?: number; // On rajoute un délai initial !
+  onComplete?: () => void;
 }
 
-export default function Typewriter({ 
-  textJp, 
-  textFr, 
-  speed = 40, 
+export default function Typewriter({
+  textJp,
+  textFr,
+  speed = 40,
   decodeDelay = 800,
-  startDelay = 500 // 500ms d'attente par défaut pour laisser la bulle apparaître
+  startDelay = 500, // 500ms d'attente par défaut pour laisser la bulle apparaître
+  onComplete,
 }: TypewriterProps) {
-  
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -28,12 +29,12 @@ export default function Typewriter({
 
     // 1. On attend d'abord que l'animation de la bulle se termine (startDelay)
     const timeoutId = setTimeout(() => {
-      
       // 2. Ensuite, on lance la machine à écrire
       const interval = setInterval(() => {
-        setTick(prev => {
+        setTick((prev) => {
           if (prev >= maxTicks) {
             clearInterval(interval);
+            if (onComplete) onComplete();
             return prev;
           }
           return prev + 1;
@@ -42,7 +43,6 @@ export default function Typewriter({
 
       // Sécurité si on quitte la page pendant la frappe
       return () => clearInterval(interval);
-
     }, startDelay);
 
     // Sécurité si on quitte la page avant même que la frappe commence
