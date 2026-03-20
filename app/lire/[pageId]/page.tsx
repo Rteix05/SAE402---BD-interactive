@@ -9,6 +9,7 @@ import Typewriter from '@/components/Typewriter';
 
 let globalBgm: HTMLAudioElement | null = null;
 let currentBgmSrc: string | null = null;
+let fadeInterval: NodeJS.Timeout | null = null;
 
 const allPagesData: Record<number, {
   overlayMask?: string;
@@ -148,6 +149,8 @@ export default function ComicPage() {
     x: 0, y: 0, rotate: 0, opacity: 1, filter: normalFilter
   }));
 
+
+
   const handleLucasClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (lucasDead) return;
@@ -229,24 +232,29 @@ export default function ComicPage() {
   const startBgm = () => {
     const targetBgmSrc = currentPageData.bgm;
 
+    // Si pas de musique pour cette page
     if (!targetBgmSrc) {
       if (globalBgm) {
         smoothVolume(globalBgm, 0, 1000);
-        setTimeout(() => globalBgm?.pause(), 1000);
-        globalBgm = null;
+        setTimeout(() => {
+          if (globalBgm && !currentBgmSrc) globalBgm.pause();
+        }, 1000);
         currentBgmSrc = null;
       }
       return;
     }
 
+    // Si même musique : on continue (juste on remet le volume si baissé)
     if (globalBgm && currentBgmSrc === targetBgmSrc) {
-        if (globalBgm.volume < 0.75) smoothVolume(globalBgm, 0.75, 500);
-        return;
+      if (globalBgm.volume < 0.75) smoothVolume(globalBgm, 0.75, 500);
+      return;
     }
 
+    // Si nouvelle musique : Fade out l'ancienne et start la nouvelle
     if (globalBgm) {
-      smoothVolume(globalBgm, 0, 1000); 
-      setTimeout(() => globalBgm?.pause(), 1000);
+      const oldBgm = globalBgm;
+      smoothVolume(oldBgm, 0, 1000);
+      setTimeout(() => oldBgm.pause(), 1000);
     }
 
     const newBgm = new Audio(targetBgmSrc);
@@ -260,7 +268,10 @@ export default function ComicPage() {
   };
 
   useEffect(() => {
+    // Tente de lancer la musique au chargement de la page (si déjà autorisée ou continu)
     startBgm();
+    
+    // Pas de cleanup ici pour laisser la musique continuer entre les pages !
   }, [currentPage]);
 
   useEffect(() => {
@@ -311,6 +322,7 @@ export default function ComicPage() {
     setIsLocked(true);
     setIsShaking(true); 
     
+    // Remet le volume
     if (globalBgm) smoothVolume(globalBgm, 0.2, 300);
 
     let voiceSrc = "";
@@ -353,7 +365,7 @@ export default function ComicPage() {
       sfxAudio.onended = () => {
         setIsShaking(false);
         setIsLocked(false);
-        if (globalBgm) smoothVolume(globalBgm, 0.75, 500); 
+        if (globalBgm) smoothVolume(globalBgm, 0.75, 500);
 
         if (currentState === 1) { setCliState(2); setCliInput(""); } 
         else if (currentState === 2) { setCliState(3); setCliInput(""); }
@@ -388,15 +400,6 @@ export default function ComicPage() {
       return;
     }
 
-    setShowWarning(false);
-
-    if (visiblePanels < pageData.length) {
-      if (currentPage === 3 && visiblePanels === 0 && pageData[2]?.sfx) {
-        const audio = new Audio(pageData[2].sfx);
-        audio.volume = 1.0;
-        audio.play().catch(e => console.log("Audio error:", e));
-      }
-
       startBgm();
 
       const nextPanel = pageData[visiblePanels];
@@ -414,7 +417,7 @@ export default function ComicPage() {
         voice.volume = 1.0;
         voice.play().catch(e => console.log("Voice Error:", e));
         voice.onended = () => {
-          smoothVolume(bgm, 0.75, 500);
+          if (globalBgm === bgm) smoothVolume(bgm, 0.75, 500);
         };
       }
 
@@ -462,7 +465,6 @@ export default function ComicPage() {
       setTimeout(() => {
         setIsLocked(false);
       }, lockDuration);
-    }
   };
 
   const handleNextPageClick = (e: React.MouseEvent) => {

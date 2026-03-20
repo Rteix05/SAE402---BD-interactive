@@ -1,10 +1,8 @@
 "use client";
-
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { TargetAndTransition } from 'framer-motion';
 
 // --- VARIANTS D'ANIMATION ---
 
@@ -24,19 +22,19 @@ const cloudRevealVariants = {
         transition: {
             duration: 3.5,
             delay: 0.1,
-            ease: "easeInOut" as const,
+            ease: [0.45, 0, 0.55, 1],
         },
     }),
 };
 
 const cloudDriftVariants = {
-    animate: (custom: number): TargetAndTransition => ({
+    animate: (i: number) => ({
         x: ['-20vw', '120vw'],
         transition: {
-            duration: custom % 2 === 0 ? 85 : 110,
-            delay: custom * 2,
+            duration: i % 2 === 0 ? 85 : 110,
+            delay: i * 2,
             repeat: Infinity,
-            ease: "linear" as const,
+            ease: 'linear',
         },
     }),
 };
@@ -68,9 +66,9 @@ export default function Home() {
             <style jsx global>{`
                 html { scroll-behavior: smooth; }
             `}</style>
-            
+
             {/* --- SECTION 1 : LA COVER --- */}
-            <section className="relative w-full h-screen overflow-hidden">
+            <section className="relative w-full h-dvh overflow-hidden">
 
                 <motion.div
                     className="absolute inset-0 z-0"
@@ -83,8 +81,7 @@ export default function Home() {
                         alt="Rafamaru Cover"
                         fill
                         priority
-                        className="object-cover"
-                        style={{ objectPosition: "bottom" }}
+                        className="object-cover object-bottom"
                     />
 
                     <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
@@ -145,7 +142,7 @@ export default function Home() {
                         <motion.div
                             initial={{ opacity: 0, x: 50 }}
                             animate={{ opacity: 1, x: 0 }}
-                            // Décalage vers la gauche augmenté (right-32 ou right-48)
+
                             className="absolute top-12 right-24 md:right-158 z-30 flex flex-col items-center gap-2 cursor-pointer group"
                             onClick={scrollToGuide}
                         >
@@ -187,11 +184,56 @@ export default function Home() {
                         GUIDE DE LECTURE
                     </h2>
 
-                    <p className="text-gray-200 text-2xl md:text-3xl leading-relaxed text-center uppercase tracking-widest mb-16 max-w-3xl mx-auto font-sans">
-                        Utilisez les flèches directionnelles pour naviguer.
-                        Le sens de lecture est de gauche à droite.
-                        Cliquez sur les bords de l'écran pour tourner les pages.
-                    </p>
+                    <div className="max-w-3xl mx-auto mb-16 space-y-8">
+                        {/* Chaque ligne est isolée dans une div avec un effet de bordure gauche pour le style */}
+                        <motion.div
+                            className="flex items-start gap-4 border-l-4 border-red-600 pl-6 py-2"
+                            initial={{ x: -20, opacity: 0 }}
+                            whileInView={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <span className="text-red-600 text-3xl font-manga">01.</span>
+                            <p className="text-gray-200 text-xl md:text-2xl uppercase tracking-widest font-sans leading-tight">
+                                Le sens de lecture est de <span className="text-white font-bold">droite à gauche</span>.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            className="flex items-start gap-4 border-l-4 border-white/20 pl-6 py-2"
+                            initial={{ x: -20, opacity: 0 }}
+                            whileInView={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <span className="text-gray-500 text-3xl font-manga">02.</span>
+                            <p className="text-gray-200 text-xl md:text-2xl uppercase tracking-widest font-sans leading-tight">
+                                Cliquez sur les <span className="text-white font-bold">flèches aux bords</span> de l'écran pour tourner les pages.
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            className="flex items-start gap-4 border-l-4 border-white/20 pl-6 py-2"
+                            initial={{ x: -20, opacity: 0 }}
+                            whileInView={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <span className="text-gray-500 text-3xl font-manga">03.</span>
+                            <p className="text-gray-200 text-xl md:text-2xl uppercase tracking-widest font-sans leading-tight">
+                                Expérience optimale sur <span className="text-white font-bold">ordinateur ou tablette</span> (mode paysage).
+                            </p>
+                        </motion.div>
+
+                        <motion.div
+                            className="flex items-start gap-4 border-l-4 border-red-600 bg-red-600/5 pl-6 py-4"
+                            initial={{ x: -20, opacity: 0 }}
+                            whileInView={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                        >
+                            <span className="text-red-600 text-3xl font-manga">!</span>
+                            <p className="text-white text-xl md:text-2xl uppercase tracking-widest font-sans leading-tight italic">
+                                <span className="text-red-500 font-bold underline">Page 04 :</span> Utilisez votre <span className="font-bold">clavier</span> pour interagir avec l'histoire.
+                            </p>
+                        </motion.div>
+                    </div>
 
                     <div className="flex justify-center">
                         <Link href="/lire/1">
@@ -211,13 +253,21 @@ export default function Home() {
                     </div>
                 </motion.div>
 
-                <div className="mt-24 w-full flex justify-end">
+                <div className="mt-24 w-full flex justify-end px-8 md:px-24">
                     <div className="text-right border-r-4 border-red-600 pr-5 py-2">
-                        <h3 className="text-white font-manga text-2xl mb-1 tracking-tight">CRÉDITS</h3>
-                        <div className="text-gray-400 text-sm uppercase tracking-wider font-sans">
+                        <Link href="/credits">
+                            <motion.h3
+                                className="text-white font-manga text-3xl mb-2 tracking-tight cursor-pointer hover:text-red-600 transition-colors inline-block"
+                                whileHover={{ x: -10 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                CRÉDITS
+                            </motion.h3>
+                        </Link>
+                        <div className="text-gray-400 text-sm uppercase tracking-wider font-sans space-y-1">
                             <p>Scénario & Dessin : <span className="text-gray-100">LOU CALMES - MARWAN BOUCHEBBAT</span></p>
                             <p>Développement : <span className="text-gray-100">RAFAEL TEXIERA - OURIRI RADOUAN</span></p>
-                            <p>© 2026 TOUS DROITS RÉSERVÉS</p>
+                            <p className="pt-2 opacity-50 text-xs">© 2026 TOUS DROITS RÉSERVÉS</p>
                         </div>
                     </div>
                 </div>
