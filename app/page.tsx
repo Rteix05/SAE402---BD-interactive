@@ -88,7 +88,8 @@ export default function Home() {
                         alt="Rafamaru Cover"
                         fill
                         priority
-                        className="object-cover object-top"
+                        className="object-cover"
+                        style={{ objectPosition: "bottom" }}
                     />
 
                     <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
