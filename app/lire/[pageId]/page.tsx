@@ -58,9 +58,9 @@ const allPagesData: Record<number, {
         id: 3, 
         layout: "absolute inset-0 w-full h-full z-20", 
         image: "/3_1.png", 
-        sfx: "/audio/raf_3.WAV",
         textJp: "悪いな、今朝フルスタックアプリを完成させたところだ。お前らはただの準備運動にすぎない。",
         textFr: "Désolé les gars, j'ai fini mon appli fullstack ce matin. Vous êtes juste mon échauffement.",
+        sfx: "/audio/raf_3.WAV",
         bubbleStyle: "bottom-[5%] left-[5%] max-w-[60%]"
       },
     ],
@@ -94,7 +94,8 @@ const allPagesData: Record<number, {
         textFr: "Quoi !? Mais quelle est cette technique ?!",
         sfx: "/audio/mathis_1.WAV",
         onomatopoeia: "/4_ono.png",
-        onoStyle: "top-[15%] left-[5%] w-[25%]" 
+        onoStyle: "top-[15%] left-[5%] w-[25%]",
+        bubbleStyle: "bottom-4 left-4 max-w-[25%]"
       },
     ],
   },
@@ -225,7 +226,7 @@ export default function ComicPage() {
   const [isShaking, setIsShaking] = useState<boolean>(false);
 
   const attack1Target = "React-sengan";
-  const attack2Target = "Docker Jutsu";
+  const attack2Target = "Git-dori";
   const attack3Target = "API-terasu";
   const attack4Target = "Jsonagi";
 
@@ -331,11 +332,11 @@ export default function ComicPage() {
     if (currentState === 1) {
       voiceSrc = "/audio/att_react.WAV"; sfxSrc = "/audio/rasengan.mp3";
     } else if (currentState === 2) {
-      voiceSrc = "/audio/att_docker.WAV"; sfxSrc = "/audio/chidori.mp3";
+      voiceSrc = "/audio/att_git.WAV"; sfxSrc = "/audio/chidori.mp3";
     } else if (currentState === 4) {
       voiceSrc = "/audio/att_api.WAV"; sfxSrc = "/audio/amaterasu.mp3"; 
     } else if (currentState === 5) {
-      voiceSrc = "/audio/att_json.WAV"; sfxSrc = "/audio/izanagi.mp3"; 
+      voiceSrc = "/audio/att_json.WAV"; sfxSrc = "/audio/katon.mp3"; 
     }
 
     const voiceAudio = new Audio(voiceSrc);
@@ -379,14 +380,14 @@ export default function ComicPage() {
     if (isLocked) return;
 
     if (currentPage === 4) {
-      if (visiblePanels === 1 && cliState === 1) {
-        setWarningText("Tapez sur le clavier pour lancer la première attaque !");
+      if (visiblePanels === 2 && cliState < 3) {
+        setWarningText("Tapez sur le clavier pour lancer les deux attaques !");
         setShowWarning(true);
         setTimeout(() => setShowWarning(false), 3000);
         return;
       }
-      if (visiblePanels === 2 && cliState === 3) {
-        setWarningText("Tapez sur le clavier pour lancer la deuxième attaque !");
+      if (visiblePanels === 3 && cliState < 6) {
+        setWarningText("Tapez sur le clavier pour lancer les attaques finales !");
         setShowWarning(true);
         setTimeout(() => setShowWarning(false), 3000);
         return;
@@ -404,6 +405,42 @@ export default function ComicPage() {
 
       const nextPanel = pageData[visiblePanels];
 
+      // GESTION SPÉCIALE POUR LES PAGES SIMULTANÉES (Page 3)
+      if (currentPageData.simultaneous) {
+          setVisiblePanels(pageData.length);
+          
+          // Jouer les sons de TOUS les panels pertinents
+          pageData.forEach((panel) => {
+              if (panel.voice) {
+                  if (globalBgm) smoothVolume(globalBgm, 0.3, 500);
+                  const voice = new Audio(panel.voice);
+                  voice.volume = 1.0;
+                  voice.play().catch(e => console.log("Voice Error:", e));
+                  voice.onended = () => {
+                      if (globalBgm) smoothVolume(globalBgm, 0.75, 500);
+                  };
+              }
+              if (panel.sfx) {
+                  const sfx = new Audio(panel.sfx);
+                  sfx.volume = 1.0;
+                  sfx.play().catch(e => console.log("SFX Error:", e));
+              }
+          });
+
+          // Logique de verrouillage spécifique à la page 3
+          // On garde la logique existante basée sur "nextPanel" qui était le premier panel
+          let lockDuration = 1500;
+          if (currentPage === 3) lockDuration = 7000;
+          
+          setIsLocked(true);
+          setTimeout(() => {
+              setIsLocked(false);
+          }, lockDuration);
+
+          return; // On arrête ici pour ne pas exécuter la logique standard
+      }
+
+      // LOGIQUE STANDARD SÉQUENTIELLE
       if (nextPanel.sfx && currentPage !== 3) {
         const sfx = new Audio(nextPanel.sfx);
         sfx.volume = 1.0;
@@ -460,7 +497,9 @@ export default function ComicPage() {
 
       if (currentPage === 2 && nextPanel.id === 3) lockDuration = 13000;
       if (currentPage === 1 && nextPanel.id === 2) lockDuration = 6200;
-      if (currentPage === 3 && nextPanel.id === 1) lockDuration = 7000;
+
+  
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
         setIsLocked(false);
@@ -484,6 +523,18 @@ export default function ComicPage() {
     }
   };
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (visiblePanels === 0) {
+      timer = setTimeout(() => {
+        handleNextPanel();
+      }, 500);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [visiblePanels]);
+
   const hasMask = !!currentPageData.overlayMask;
 
   return (
@@ -501,14 +552,35 @@ export default function ComicPage() {
 
       <div className="relative w-full max-w-5xl flex flex-col items-center justify-center">
         
-        {currentPage > 1 && (
-          <Link 
-            href={`/lire/${currentPage - 1}`}
-            className="absolute top-1/2 -translate-y-1/2 -left-6 md:-left-20 z-50 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 hover:scale-110 text-white rounded-full transition-all border-2 border-neutral-600 shadow-xl"
-            title="Page précédente"
-          >
-            <svg className="w-6 h-6 md:w-8 md:h-8 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
-          </Link>
+        {currentPage < TOTAL_PAGES && (
+          <div className="absolute top-1/2 -translate-y-1/2 -left-6 md:-left-20 z-50 flex flex-col items-center">
+            
+            <AnimatePresence>
+              {showWarning && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max bg-red-600 text-white px-4 py-2 rounded-lg shadow-[0_4px_15px_rgba(220,38,38,0.5)] text-sm md:text-base font-bold pointer-events-none before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-t-red-600"
+                >
+                  {warningText}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Link 
+              href={`/lire/${currentPage + 1}`}
+              onClick={handleNextPageClick} 
+              className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 shadow-[0_0_15px_rgba(234,88,12,0.5)] ${
+                visiblePanels < pageData.length || isLocked || (currentPage === 4 && cliState < 6)
+                  ? 'bg-neutral-600 border-neutral-400 text-neutral-300 shadow-none cursor-not-allowed' 
+                  : 'bg-orange-600 hover:bg-orange-500 hover:scale-110 text-white border-orange-400' 
+              }`}
+              title="Page suivante"
+            >
+              <svg className="w-6 h-6 md:w-8 md:h-8 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+            </Link>
+          </div>
         )}
 
         <motion.div 
@@ -616,7 +688,7 @@ export default function ComicPage() {
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="absolute top-[40%] left-[38%] md:left-[35%] w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+                            className="absolute top-[40%] left-[45%] md:left-[42%] w-[24%] md:w-[20%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
                           >
                             <div className="text-[10px] md:text-xs text-green-500">
                               <p className="mb-1 opacity-70">root@sae402:~# init</p>
@@ -639,7 +711,7 @@ export default function ComicPage() {
                           <motion.div 
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="absolute top-[70%] left-[20%] -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
+                            className="absolute top-[60%] left-[20%] -translate-x-1/2 w-[28%] md:w-[25%] z-50 bg-black/90 border border-green-500 rounded p-2 md:p-3 font-mono shadow-[0_0_20px_rgba(34,197,94,0.6)]"
                           >
                             <div className="text-[10px] md:text-xs text-green-500">
                               <p className="mb-1 opacity-70">root@sae402:~# final_atk</p>
@@ -702,37 +774,6 @@ export default function ComicPage() {
             </div>
           )}
         </motion.div>
-
-        {currentPage < TOTAL_PAGES && (
-          <div className="absolute top-1/2 -translate-y-1/2 -right-6 md:-right-20 z-50 flex flex-col items-center">
-            
-            <AnimatePresence>
-              {showWarning && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                  className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-max bg-red-600 text-white px-4 py-2 rounded-lg shadow-[0_4px_15px_rgba(220,38,38,0.5)] text-sm md:text-base font-bold pointer-events-none before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 before:border-8 before:border-transparent before:border-t-red-600"
-                >
-                  {warningText}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <Link 
-              href={`/lire/${currentPage + 1}`}
-              onClick={handleNextPageClick} 
-              className={`w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full transition-all border-2 shadow-[0_0_15px_rgba(234,88,12,0.5)] ${
-                visiblePanels < pageData.length || isLocked || (currentPage === 4 && cliState < 6)
-                  ? 'bg-neutral-600 border-neutral-400 text-neutral-300 shadow-none cursor-not-allowed' 
-                  : 'bg-orange-600 hover:bg-orange-500 hover:scale-110 text-white border-orange-400' 
-              }`}
-              title="Page suivante"
-            >
-              <svg className="w-6 h-6 md:w-8 md:h-8 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-            </Link>
-          </div>
-        )}
 
       </div>
 
