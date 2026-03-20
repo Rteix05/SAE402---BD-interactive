@@ -70,7 +70,7 @@ const allPagesData: Record<
         textJp: "ラファマル、貴重なものをください！",
         textFr: "Donne-nous le Rouleau des commandes Dockers Rafamaru !",
         bubbleStyle: "bottom-[3%] right-[2%] left-auto",
-        voice: "/audio/lucas_1.wav",
+        sfx: "/audio/lucas_1.wav",
       },
       {
         id: 3,
@@ -80,7 +80,7 @@ const allPagesData: Record<
         textFr:
           "C'est tout ce que vous avez ? Je viens de valider mon S3, vous ne me faites pas peur ! SharinCode !!!",
         bubbleStyle: "bottom-[3%] left-[2%]",
-        voice: "/audio/raf_2.mp3",
+        sfx: "/audio/raf_2.mp3",
       },
     ],
   },
