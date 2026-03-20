@@ -70,7 +70,7 @@ const allPagesData: Record<
         textJp: "ラファマル、貴重なものをください！",
         textFr: "Donne-nous le Rouleau des commandes Dockers Rafamaru !",
         bubbleStyle: "bottom-[3%] right-[2%] left-auto",
-        sfx: "/audio/lucas_1.wav",
+        sfx: "/audio/lucas_1.WAV",
       },
       {
         id: 3,
