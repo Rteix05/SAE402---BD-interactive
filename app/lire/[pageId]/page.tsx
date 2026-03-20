@@ -28,6 +28,7 @@ const allPagesData: Record<
       bubbleStyle?: string;
       sfx?: string;
       voice?: string;
+      bgm?: string;
       sfxChain?: string[];
       customStack?: boolean;
     }[];
@@ -131,7 +132,7 @@ const allPagesData: Record<
         textJp: "見つけたぞ！",
         sfx: "/audio/raf_4.WAV",
         textFr:
-          "Eh... Vous n'êtes pas prêts a voir ma maitrise parfaite de l'hebergement !",
+          "Eh... Vous n'êtes pas prêts à voir ma maitrise parfaite de l'hebergement !",
         bubbleStyle: "top-[10%] left-[38%] w-[25%]",
       },
       {
@@ -149,6 +150,7 @@ const allPagesData: Record<
   },
   5: {
     overlayMask: "/5_ligne.png",
+    bgm: "/audio/ikari.mp3",
     panels: [
       {
         id: 1,
@@ -160,6 +162,7 @@ const allPagesData: Record<
       },
       {
         id: 2,
+        bgm: "/audio/peaceful_theme.mp3",
         layout: "absolute inset-0 w-full h-full",
         image: "/5_2.png",
         textJp: "お前の術は...なんだ？", // "Quel est ton jutsu ?" en japonais
@@ -338,7 +341,14 @@ export default function ComicPage() {
   const attack4Target = "Jsonagi";
 
   const startBgm = () => {
-    const targetBgmSrc = currentPageData.bgm;
+    let targetBgmSrc = currentPageData.bgm;
+
+    // Vérifie si un panel visible impose une musique (override)
+    for (let i = 0; i < visiblePanels; i++) {
+      if (pageData[i]?.bgm) {
+        targetBgmSrc = pageData[i].bgm;
+      }
+    }
 
     // Si pas de musique pour cette page
     if (!targetBgmSrc) {
@@ -606,6 +616,31 @@ export default function ComicPage() {
     }
 
     // LOGIQUE STANDARD SÉQUENTIELLE
+    // Gestion du changement de musique par panel
+    if (nextPanel.bgm && nextPanel.bgm !== currentBgmSrc) {
+      if (globalBgm) {
+        const oldBgm = globalBgm;
+        smoothVolume(oldBgm, 0, 1000);
+        setTimeout(() => oldBgm.pause(), 1000);
+      }
+
+      const newBgm = new Audio(nextPanel.bgm);
+      newBgm.loop = true;
+      newBgm.volume = 0;
+      newBgm.play().catch((e) => console.log("BGM Switch Error:", e));
+
+      globalBgm = newBgm;
+      currentBgmSrc = nextPanel.bgm;
+
+      // Si pas de voix ni de sfxChain qui vont gérer le volume (ducking), on monte le volume ici
+      if (
+        !nextPanel.voice &&
+        (!nextPanel.sfxChain || nextPanel.sfxChain.length === 0)
+      ) {
+        smoothVolume(newBgm, 0.75, 1000);
+      }
+    }
+
     if (nextPanel.sfx && currentPage !== 3) {
       const sfx = new Audio(nextPanel.sfx);
       sfx.volume = 1.0;
