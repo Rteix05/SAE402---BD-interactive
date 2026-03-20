@@ -34,7 +34,7 @@ const allPagesData: Record<number, {
     bgm: "/audio/konoha.mp3",
     panels: [
       { id: 1, layout: "absolute inset-0 w-full h-full", image: "/1_1.png" },
-      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/1_2.png", textFr: "Enfin... “Delon - Sama “ m'a donné ma première vraie SAE , je vais lui montrer de quoi je suis capable..", bubbleStyle: "bottom-[3%] left-[2%]", voice: "/audio/raf_1.WAV" },
+      { id: 2, layout: "absolute inset-0 w-full h-full", image: "/1_2.png", textJp: "ラファマ...貴重な ものをく-貴重な ものをたばかりく", textFr: "Enfin... “Delon - Sama “ m'a donné ma première vraie SAE , je vais lui montrer de quoi je suis capable..", bubbleStyle: "bottom-[3%] left-[2%]", voice: "/audio/raf_1.WAV" },
     ],
   },
   2: {
