@@ -604,7 +604,7 @@ export default function ComicPage() {
                             initial={{ opacity: 0, y: 20, scale: 0.8 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ delay: 0.3, type: "spring" }}
-                            className={`absolute z-40 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[40%] min-h-[3.5rem] shadow-md ${panel.bubbleStyle || 'bottom-4 left-4'}`}
+                            className={`absolute z-40 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-manga font-bold max-w-[40%] min-h-[3.5rem] shadow-md ${panel.bubbleStyle || 'bottom-4 left-4'}`}
                           >
                             <Typewriter textJp={panel.textJp || ""} textFr={panel.textFr || ""} speed={40} decodeDelay={800} startDelay={500} />
                           </motion.div>
@@ -683,7 +683,7 @@ export default function ComicPage() {
                           initial={{ opacity: 0, y: 20, scale: 0.8 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           transition={{ delay: 0.3, type: "spring" }}
-                          className="absolute bottom-4 left-4 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-bold max-w-[80%] min-h-[3.5rem] shadow-md"
+                          className="absolute bottom-4 left-4 bg-white text-black border-2 border-black rounded-3xl px-4 py-3 font-manga font-bold max-w-[80%] min-h-[3.5rem] shadow-md"
                         >
                           <Typewriter textJp={panel.textJp || ""} textFr={panel.textFr || ""} speed={40} decodeDelay={800} startDelay={500} />
                         </motion.div>

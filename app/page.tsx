@@ -66,14 +66,9 @@ export default function Home() {
             onClick={startSequence}
         >
             <style jsx global>{`
-                @font-face {
-                    font-family: 'Manga Temple';
-                    src: url('/font/mangati.ttf') format('truetype');
-                }
-                .font-manga { font-family: 'Manga Temple', sans-serif; }
                 html { scroll-behavior: smooth; }
             `}</style>
-
+            
             {/* --- SECTION 1 : LA COVER --- */}
             <section className="relative w-full h-screen overflow-hidden">
 

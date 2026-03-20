@@ -5,6 +5,15 @@
   --foreground: #171717;
 }
 
+@font-face {
+  font-family: 'Manga Temple';
+  src: url('/font/mangati.ttf') format('truetype');
+}
+
+.font-manga {
+  font-family: 'Manga Temple', sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
